@@ -25,10 +25,21 @@ app.get("/users/:id", async (c) => {
 });
 app.post("/users", async (c) => {
   const { email, name } = await c.req.json();
-  const newUser = await prisma.user.create({
-    data: { email, name },
-  });
-  return c.json(newUser, 201);
+  try {
+    const newUser = await prisma.user.create({
+      data: { email, name },
+    });
+    return c.json(newUser, 201);
+  } catch (error) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingUser) {
+      return c.json({ error: "Email already in use" }, 409);
+    }
+
+    return c.json({ error: "Failed to create user" }, 400);
+  }
 });
 
 if (process.env.NODE_ENV !== "production") {
